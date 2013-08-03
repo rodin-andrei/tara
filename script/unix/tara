@@ -1,0 +1,104 @@
+#!/bin/bash
+
+MIN_PARAMS=2
+
+# Set path to tara.jar
+TARA_JAR_PATH=
+if [ -z "$TARA_JAR_PATH" ]; then
+	TARA_JAR_PATH="$HOME/.java/tara.jar"
+fi
+
+EXT=".tara"
+LIBRARY_FILES=".files"
+LIBRARY_CONTENT=".content"
+LIBRARY_ORIG=".orig"
+LIBRARY_BUILD=".`date +%Y-%m-%d_%H:%M:%S`"
+TARA="java -jar $TARA_JAR_PATH"
+
+usage() {
+    echo "Usage:"
+    echo " $0 build|unpack|repair|clear-builds directory"
+}
+
+unpack() {
+	if [ -d "$1" ]; then
+		echo "Use $src directory"
+		find "$1" -type f -iname "*$EXT"|while read filename; do
+			unpack "$filename"
+		done
+	else 
+		files_dir="$1$LIBRARY_FILES"
+		if [ -e "$files_dir" ]; then
+			rm $files_dir/* 2>/dev/null
+		else
+			mkdir "$files_dir"
+		fi
+		echo "Unpack $1"
+		$TARA -e -f "$1" -d "$files_dir" -c "$1$LIBRARY_CONTENT"
+	fi
+}
+
+build() {
+	echo "Building in $1"
+	find "$1" -type f -iname "*$EXT$LIBRARY_CONTENT"|while read filename; do
+		file_tara=${filename%.*}
+		echo "Build $file_tara"
+		if [ ! -e "$file_tara.orig" ]; then
+			cp "$file_tara" "$file_tara.orig"
+		fi
+		build=$file_tara$LIBRARY_BUILD
+		$TARA -a -f "$build" -d "$file_tara$LIBRARY_FILES" -c "$filename"
+		cp "$build" "$file_tara"
+	done
+}
+
+repair() {
+	echo "Repair tara in $1"
+	find "$1" -type f -iname "*$EXT$LIBRARY_ORIG"|while read filename; do
+		orig=${filename%.*}
+		echo "$filename -> $orig"
+		cp "$filename" "$orig"
+	done
+}
+
+clear_builds() {
+	echo "Clear builds in $1"
+	find "$1" -type f -iname "*$EXT.*"|egrep "[0-9]{4}-[0-9]{2}-[0-9]{2}_"|while read filename; do
+		echo "remove $filename"
+		rm "$filename"
+	done
+}
+
+if [ $# -lt $MIN_PARAMS ]; then
+	echo "Required 2 parameters"
+	usage
+	exit 1
+fi
+src=`readlink -e $2`
+if [ -z "$src" ]; then
+	echo "No exist $2"
+	exit 1
+fi
+case "$1" in
+	"build"			) 
+		build "$src"
+		echo "Build down"
+	;;
+	"unpack"		)
+		unpack "$src"
+		echo "Unpack down"
+	;;
+	"repair"		)
+		repair "$src"
+		echo "Repair down"
+	;;
+	"clear-builds"	)
+		clear_builds "$src"
+		echo "Clear builds down"
+	;;
+	*				)
+		echo "Unknow option $1"
+		usage
+		exit 1
+	;;
+esac
