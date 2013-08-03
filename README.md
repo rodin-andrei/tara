@@ -48,7 +48,7 @@ java -jar tara.jar -f arg  [-h] [-a] [-e] [-d arg ] [-c arg ] [-v [arg] ]
 ## Облегчающие работу скрипты  
 Рекурсивно обрабатывают подкаталоги  
 
-- [Unix](https://raw.github.com/shmalevoz/tara/master/tara)  
+- [Unix](https://raw.github.com/shmalevoz/tara/master/script/unix/tara)  
 
 > tara build|unpack|repair|clear-builds directory  
 
